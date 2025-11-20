@@ -51,6 +51,13 @@ func (s *server) Serve() {
 
 func (s *server) Routes() {
 	s.m.HandleFunc("GET /health", func (w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		s.JSON(w, map[string]string{"status": "ok"}, 200)
 	})
+
+	s.m.HandleFunc("POST /v1/deploy", s.handlePostDeploy)
+
+}
+
+func (s *server) LogError(f string, err error) {
+	log.Printf("ERROR::%v::ERROR\n%v\n", f, err.Error())
 }
