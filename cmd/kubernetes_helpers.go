@@ -7,6 +7,7 @@ import (
 	"k8s.io/client-go/kubernetes/typed/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"errors"
 	"k8s.io/client-go/rest"
 	"context"
 )
@@ -43,15 +44,53 @@ func (s *server) kubernetes_new_ingress() (*networkingv1.Ingress, error) {
 
 	if err != nil {
 		s.LogError("kubernetes_new_ingress", err)
-		return nil, err
+		return nil, errors.New("error occured while creating config")
 	}
 
-	ingress, err := client.Ingresses("default").Create(context.Background(), &networkingv1.Ingress{}, metav1.CreateOptions{})
+	pathType := networkingv1.PathTypePrefix
+	ingress, err := client.Ingresses("default").Create(context.Background(), &networkingv1.Ingress{
+		metav1.TypeMeta{
+			Kind: "ingress",	
+			APIVersion: "networking.k8s.io/v1",
+		},
+		metav1.ObjectMeta{
+			Name: "simple-ingress",
+		},
+		networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+
+					Host: "foo.bar.com",
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								{
+									PathType: &pathType,
+									Path: "/",
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: "web-service",
+											Port: networkingv1.ServiceBackendPort{
+												Number: 8080,
+											},
+										},
+									},
+								},
+							},
+
+						},
+					},
+				},
+			},
+		},
+		networkingv1.IngressStatus{},
+	}, metav1.CreateOptions{})
 
 	if err != nil {
 		s.LogError("kubernetes_new_ingress", err)
-		return nil, err
+		return nil, errors.New("error occured while creating ingress")
 	}
 
 	return ingress, nil
 }
+
