@@ -2,6 +2,7 @@ package main
 
 import (
 	"k8s.io/client-go/kubernetes"
+	"github.com/docker/docker/client"
 	"k8s.io/client-go/rest"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ type server struct {
 	m       *http.ServeMux
 	kconfig *rest.Config
 	kclient *kubernetes.Clientset
+	dclient *client.Client
 }
 
 func newHTTPServer(mux *http.ServeMux) *http.Server {
@@ -36,12 +38,15 @@ func NewServer() *server {
 
 	kcfg := kubernetes_new_config("/home/quack/.kube/config")
 	kcli := kubernetes_new_clientset(kcfg)
+	dcli := docker_new_client()
+
 
 	return &server{
 		s:       newHTTPServer(m),
 		m:       m,
 		kclient: kcli,
 		kconfig: kcfg,
+		dclient: dcli,
 	}
 }
 

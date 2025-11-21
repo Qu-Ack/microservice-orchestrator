@@ -1,7 +1,9 @@
 package main
 
 import (
+	"path/filepath"
 	"net/http"
+	"fmt"
 )
 
 func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
@@ -42,8 +44,18 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.LogMsg(compose_file)
+		for name, service := range compose_file.Services {
+			s.LogMsg(fmt.Sprintf("reading %v service", name))
 
+			err := s.docker_build_image(filepath.Join(clone_path, service.Build.Context))
+
+			if err != nil {
+				s.JSON(w, map[string]string{"error": "internal server error", "message": "couldn't clone repo"}, 500)
+				return
+			}
+		}
+
+		s.LogMsg("completed building images..")
 
 		s.JSON(w, map[string]string{"status": "ok"}, 200)
 		break

@@ -26,7 +26,6 @@ func kubernetes_new_config (cfg_path string) *rest.Config {
 
 
 func kubernetes_new_clientset (cfg *rest.Config) *kubernetes.Clientset  {
-
 	clientSet, err := kubernetes.NewForConfig(cfg)
 
 	if err != nil {
