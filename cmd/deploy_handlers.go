@@ -43,6 +43,8 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.LogMsg(compose_file)
+
+
 		s.JSON(w, map[string]string{"status": "ok"}, 200)
 		break
 	case "dockerfile":
