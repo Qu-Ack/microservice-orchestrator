@@ -53,13 +53,12 @@ func NewServer() *server {
 func (s *server) Serve() {
 	log.Println("Listening And Serving...")
 	s.Routes()
-	ingress, err := s.kubernetes_new_ingress()
+	_, err := s.kubernetes_new_ingress()
 
 	if err != nil {
 		s.LogError("Serve", err)
 		return
 	}
-	s.LogMsg(ingress)
 
 	err = s.s.ListenAndServe()
 
