@@ -87,6 +87,15 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 					s.LogError("go func building service", err)
 					return
 				}
+
+
+				_, err = s.kubernetes_ingress_update(ser_name, b.Subdomain)
+
+				if err != nil {
+					s.LogError("go func updating ingress error", err)
+					return
+				}
+
 			}()
 		}
 

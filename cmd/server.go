@@ -1,8 +1,9 @@
 package main
 
 import (
-	"k8s.io/client-go/kubernetes"
 	"github.com/docker/docker/client"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"log"
 	"net/http"
@@ -10,11 +11,12 @@ import (
 )
 
 type server struct {
-	s       *http.Server
-	m       *http.ServeMux
-	kconfig *rest.Config
-	kclient *kubernetes.Clientset
-	dclient *client.Client
+	s        *http.Server
+	m        *http.ServeMux
+	kconfig  *rest.Config
+	kclient  *kubernetes.Clientset
+	dclient  *client.Client
+	kingress *networkingv1.Ingress
 }
 
 func newHTTPServer(mux *http.ServeMux) *http.Server {
@@ -40,27 +42,22 @@ func NewServer() *server {
 	kcli := kubernetes_new_clientset(kcfg)
 	dcli := docker_new_client()
 
+	ing := kubernetes_new_ingress(kcfg)
 
 	return &server{
-		s:       newHTTPServer(m),
-		m:       m,
-		kclient: kcli,
-		kconfig: kcfg,
-		dclient: dcli,
+		s:        newHTTPServer(m),
+		m:        m,
+		kclient:  kcli,
+		kconfig:  kcfg,
+		kingress: ing,
+		dclient:  dcli,
 	}
 }
 
 func (s *server) Serve() {
 	log.Println("Listening And Serving...")
 	s.Routes()
-	_, err := s.kubernetes_new_ingress()
-
-	if err != nil {
-		s.LogError("Serve", err)
-		return
-	}
-
-	err = s.s.ListenAndServe()
+	err := s.s.ListenAndServe()
 
 	if err != nil {
 		panic(err)
