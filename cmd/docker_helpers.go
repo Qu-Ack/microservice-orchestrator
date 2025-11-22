@@ -2,17 +2,17 @@ package main
 
 import (
 	"archive/tar"
-	"context"
 	"bytes"
-	"github.com/go-yaml/yaml"
-	"github.com/docker/docker/client"
+	"context"
+	"errors"
+	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+	"github.com/go-yaml/yaml"
 	"io"
 	"os"
 	"path/filepath"
-	"errors"
 )
-
 
 type Service struct {
 	ContainerName string `yaml:"container_name"`
@@ -28,7 +28,6 @@ type ComposeFile struct {
 	Services map[string]Service
 }
 
-
 func docker_new_client() *client.Client {
 	apiClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -37,7 +36,6 @@ func docker_new_client() *client.Client {
 	}
 	return apiClient
 }
-
 
 func (s *server) read_compose_file(project_path string) (*ComposeFile, error) {
 	var c ComposeFile
@@ -121,7 +119,7 @@ func (s *server) docker_create_context(dirPath string) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func (s *server) docker_build_image(root_dir string) error {
+func (s *server) docker_build_image(root_dir string, service_name string) error {
 	build_context, err := s.docker_create_context(root_dir)
 
 	if err != nil {
@@ -130,7 +128,11 @@ func (s *server) docker_build_image(root_dir string) error {
 
 	}
 
-	image_build_resp, err := s.dclient.ImageBuild(context.Background(), build_context, types.ImageBuildOptions{})
+	image_build_resp, err := s.dclient.ImageBuild(context.Background(), build_context, types.ImageBuildOptions{
+		Tags:        []string{fmt.Sprintf("service-%v:latest", service_name)},
+		Remove:      true,
+		ForceRemove: true,
+	})
 
 	if err != nil {
 		s.LogError("docker_build_image", err)

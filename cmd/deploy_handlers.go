@@ -45,14 +45,16 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for name, service := range compose_file.Services {
-			s.LogMsg(fmt.Sprintf("reading %v service", name))
+			go func() {
+				s.LogMsg(fmt.Sprintf("reading %v service", name))
 
-			err := s.docker_build_image(filepath.Join(clone_path, service.Build.Context))
+				err := s.docker_build_image(filepath.Join(clone_path, service.Build.Context), name)
 
-			if err != nil {
-				s.JSON(w, map[string]string{"error": "internal server error", "message": "couldn't clone repo"}, 500)
-				return
-			}
+				if err != nil {
+					s.LogError("go func building image", err)
+					return
+				}
+			}()
 		}
 
 		s.LogMsg("completed building images..")
