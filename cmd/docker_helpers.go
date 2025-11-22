@@ -2,10 +2,11 @@ package main
 
 import (
 	"archive/tar"
+	"strconv"
 	"bytes"
+	"strings"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/go-yaml/yaml"
@@ -119,9 +120,7 @@ func (s *server) docker_create_context(dirPath string) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-
-
-func (s *server) docker_build_image(root_dir string, service_name string) error {
+func (s *server) docker_build_image(root_dir string, image_name string) error {
 	build_context, err := s.docker_create_context(root_dir)
 
 	if err != nil {
@@ -131,7 +130,7 @@ func (s *server) docker_build_image(root_dir string, service_name string) error 
 	}
 
 	image_build_resp, err := s.dclient.ImageBuild(context.Background(), build_context, types.ImageBuildOptions{
-		Tags:        []string{fmt.Sprintf("service-%v:latest", service_name)},
+		Tags:        []string{image_name},
 		Remove:      true,
 		ForceRemove: true,
 	})
@@ -150,4 +149,61 @@ func (s *server) docker_build_image(root_dir string, service_name string) error 
 
 	}
 	return nil
+}
+
+
+func (s *server) docker_get_container_port(docker_file_path string) (int, error) {
+	
+	f, err := os.Open(docker_file_path)
+
+	if err != nil {
+		s.LogError("docker_get_container_port", err)
+		return -1, err
+	}
+
+	data, err := io.ReadAll(f)
+	string_data := string(data)
+
+	idx := strings.Index(string_data, "EXPOSE")
+
+	expose_line := ""
+	if idx != -1 {
+		for idx < len(string_data) {
+			if (string_data[idx] == '\n') {
+				break;
+			} else {
+				expose_line += string(string_data[idx]) 
+				idx++
+			}
+
+		}
+
+	} else {
+		idx = strings.Index(string(data), "expose")
+
+		if idx != -1 {
+			for idx < len(string_data) {
+				if (string_data[idx] == '\n') {
+					break;
+				} else {
+					expose_line += string(string_data[idx]) 
+					idx++
+				}
+			}
+		} else {
+			e := errors.New("couldn't find expose in Dockerfile")
+			s.LogError("docker_get_container_port", e)
+			return -1, e
+		}
+	}
+
+	splits := strings.Split(expose_line, " ")
+	port, err :=  strconv.Atoi(splits[1])
+
+	if err != nil {
+		s.LogError("docker_get_container_port", err)
+		return -1, err
+	}
+
+	return port, nil
 }

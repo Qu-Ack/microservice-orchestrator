@@ -1,9 +1,10 @@
 package main
 
 import (
-	"path/filepath"
-	"net/http"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"net/http"
+	"path/filepath"
 )
 
 func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,8 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clone_path := make_clone_path(b.Subdomain)
+	id := random_string_from_charset(6)
+	clone_path := make_clone_path(b.Subdomain, id)
 
 	err = git_clone(b.CloneUrl, b.Branch, "1", b.Subdomain, clone_path)
 
@@ -48,18 +50,49 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 			go func() {
 				s.LogMsg(fmt.Sprintf("reading %v service", name))
 
-				err := s.docker_build_image(filepath.Join(clone_path, service.Build.Context), name)
+				img_name := fmt.Sprintf("%v-%v-%v:latest", name, id, b.Subdomain)
+				dep_name := fmt.Sprintf("%v-%v-%v-dep", name, id, b.Subdomain)
+				pod_name := fmt.Sprintf("%v-%v-%v-pod", name, id, b.Subdomain)
+				ser_name := fmt.Sprintf("%v-%v-%v-ser", name, id, b.Subdomain)
+
+				pod_selector_labels := map[string]string{
+					"app": pod_name,
+				}
+
+				containerPort, err := s.docker_get_container_port(filepath.Join(clone_path, service.Build.Context, service.Build.Dockerfile))
+
+				if err != nil {
+					s.LogError("go func docker get container port", err)
+					return
+				}
+
+				err = s.docker_build_image(filepath.Join(clone_path, service.Build.Context), img_name)
 
 				if err != nil {
 					s.LogError("go func building image", err)
+					return
+				}
+
+				var replicas int32 = 3
+				_, err = s.kuberentes_new_deployment(dep_name, &replicas, pod_selector_labels, 80, img_name)
+
+				if err != nil {
+					s.LogError("go func building deployment", err)
+					return
+				}
+
+				_, err = s.kuberentes_new_service(ser_name, pod_selector_labels, 80, intstr.FromInt(containerPort))
+
+				if err != nil {
+					s.LogError("go func building service", err)
 					return
 				}
 			}()
 		}
 
 		s.LogMsg("completed building images..")
-
 		s.JSON(w, map[string]string{"status": "ok"}, 200)
+
 		break
 	case "dockerfile":
 		break
