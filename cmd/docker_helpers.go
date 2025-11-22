@@ -119,6 +119,8 @@ func (s *server) docker_create_context(dirPath string) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
+
+
 func (s *server) docker_build_image(root_dir string, service_name string) error {
 	build_context, err := s.docker_create_context(root_dir)
 
