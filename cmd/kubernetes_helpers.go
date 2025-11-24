@@ -183,19 +183,20 @@ func (s *server) kuberentes_new_service(service_name string, selector map[string
 	return ser, nil
 }
 
+// make this go routine safe 
 func (s *server) kubernetes_ingress_update(service_name, host_name string) (*networkingv1.Ingress, error) {
 	client, err := v1.NewForConfig(s.kconfig)
 	if err != nil {
 		return nil, err
 	}
-
+	// lock the mutex
+	s.mu.Lock()
 	current, err := client.Ingresses("default").Get(context.Background(), "simple-ingress", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	pathType := networkingv1.PathTypePrefix
-
 	current.Spec.Rules = append(current.Spec.Rules, networkingv1.IngressRule{
 		Host: fmt.Sprintf("%v-%v.bar.com", service_name, host_name),
 		IngressRuleValue: networkingv1.IngressRuleValue{
@@ -216,10 +217,17 @@ func (s *server) kubernetes_ingress_update(service_name, host_name string) (*net
 		},
 	})
 
+
 	updated, err := client.Ingresses("default").Update(context.Background(), current, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
+	s.mu.Unlock()
+	// free the mutex
 	return updated, nil
 }
+
+
+
+
 

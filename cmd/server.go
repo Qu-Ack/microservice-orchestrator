@@ -7,6 +7,7 @@ import (
 	"k8s.io/client-go/rest"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type server struct {
 	kclient  *kubernetes.Clientset
 	dclient  *client.Client
 	kingress *networkingv1.Ingress
+	mu       sync.Mutex
 }
 
 func newHTTPServer(mux *http.ServeMux) *http.Server {
@@ -51,6 +53,7 @@ func NewServer() *server {
 		kconfig:  kcfg,
 		kingress: ing,
 		dclient:  dcli,
+		mu:       sync.Mutex{},
 	}
 }
 
