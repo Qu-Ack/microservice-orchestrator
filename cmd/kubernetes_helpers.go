@@ -39,7 +39,7 @@ func kubernetes_new_clientset(cfg *rest.Config) *kubernetes.Clientset {
 	return clientSet
 }
 
-func  kubernetes_new_ingress(cfg *rest.Config) *networkingv1.Ingress {
+func kubernetes_new_ingress(cfg *rest.Config) *networkingv1.Ingress {
 
 	client, err := v1.NewForConfig(cfg)
 
@@ -102,14 +102,13 @@ func (s *server) kuberentes_new_deployment(dep_name string, replicas *int32, pod
 		return nil, err
 	}
 
-
 	dep, err := client.Deployments("default").Create(context.Background(), &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   dep_name,
+			Name: dep_name,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: replicas,
@@ -183,7 +182,11 @@ func (s *server) kuberentes_new_service(service_name string, selector map[string
 	return ser, nil
 }
 
-// make this go routine safe 
+type PartialIngressUpdateStruct struct {
+
+}
+
+// make this go routine safe
 func (s *server) kubernetes_ingress_update(service_name, host_name string) (*networkingv1.Ingress, error) {
 	client, err := v1.NewForConfig(s.kconfig)
 	if err != nil {
@@ -217,7 +220,6 @@ func (s *server) kubernetes_ingress_update(service_name, host_name string) (*net
 		},
 	})
 
-
 	updated, err := client.Ingresses("default").Update(context.Background(), current, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
@@ -227,7 +229,45 @@ func (s *server) kubernetes_ingress_update(service_name, host_name string) (*net
 	return updated, nil
 }
 
+type PartialDeployment struct {
+	replicas *int32
+	name     *string
+}
 
+func (s *server) kubernetes_update_deployment(deployment_name string, part_dep PartialDeployment) error {
 
+	client, err := typesv1.NewForConfig(s.kconfig)
 
+	if err != nil {
+		s.LogError("kubernetes_update_deployment", err)
+		return err
+	}
 
+	s.mu.Lock()
+
+	dep, err := client.Deployments("default").Get(context.Background(), deployment_name, metav1.GetOptions{})
+
+	if err != nil {
+		s.LogError("kubernetes_update_deployment", err)
+		return err
+	}
+
+	if part_dep.name != nil {
+		dep.ObjectMeta.Name = *part_dep.name
+	} 
+
+	if part_dep.replicas != nil {
+		dep.Spec.Replicas = part_dep.replicas
+	}
+
+	dep, err = client.Deployments("default").Update(context.Background(), dep, metav1.UpdateOptions{})
+
+	if err != nil {
+		s.LogError("kubernetes_update_deployment", err)
+		return err
+	}
+
+	return nil
+}
+
+// TODO: Implement AutoScale Feature.
