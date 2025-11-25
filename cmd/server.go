@@ -44,7 +44,7 @@ func NewServer() *server {
 	kcli := kubernetes_new_clientset(kcfg)
 	dcli := docker_new_client()
 
-	ing := kubernetes_new_ingress(kcfg, "default")
+	ing := kubernetes_new_ingress(kcfg, "user-12345")
 	return &server{
 		s:        newHTTPServer(m),
 		m:        m,
@@ -71,7 +71,7 @@ func (s *server) Routes() {
 		s.JSON(w, map[string]string{"status": "ok"}, 200)
 	})
 
-	s.m.HandleFunc("POST /v1/deploy", s.handlePostDeploy)
+	s.m.HandleFunc("POST /v1/deploy", s.MiddlewareExtractCookie(s.handlePostDeploy))
 	s.m.HandleFunc("PUT /v1/deploy", s.handlePutDeploy)
 }
 

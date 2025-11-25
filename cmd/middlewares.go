@@ -1,0 +1,65 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"context"
+	"github.com/golang-jwt/jwt/v5"
+)
+
+
+type AuthClaims struct {
+	NamespaceId string `json:"namespace_id"`
+	jwt.RegisteredClaims
+}
+
+
+
+func (a AuthClaims) Validate() error {
+	if a.NamespaceId == "" {
+		return errors.New("auth_id invalid")
+	}
+
+	return nil
+}
+
+
+const AUTH_COOKIE_NAME = "auth_id"
+
+var hmacKey = []byte("a-very-long-random-secret-key-at-least-32-bytes")
+
+func keyFunction(token *jwt.Token) (any, error) {
+    if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+        return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+    }
+    return hmacKey, nil
+}
+
+func (s *server) MiddlewareExtractCookie(next http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+//        cookie, err := r.Cookie(AUTH_COOKIE_NAME)
+//        if err == http.ErrNoCookie {
+//            s.JSON(w, map[string]string{"error": "auth_id invalid"}, 401)
+//            return
+//        }
+//        if err != nil {
+//            s.JSON(w, map[string]string{"error": "auth_id invalid"}, 401)
+//            return
+//        }
+//
+//        var claims AuthClaims
+//
+//        token, err := jwt.ParseWithClaims(cookie.Value, &claims, keyFunction)
+//
+//        if err != nil || !token.Valid {
+//            s.JSON(w, map[string]string{"error": "auth_id invalid"}, 401)
+//            return
+//        }
+
+        ctx := context.WithValue(r.Context(), "namespace_id", "user-12345")
+        r = r.WithContext(ctx)
+
+        next(w, r)
+    }
+}
