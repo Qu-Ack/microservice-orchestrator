@@ -6,6 +6,7 @@ require (
 	github.com/docker/docker v26.1.1+incompatible
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/lib/pq v1.10.9
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2

@@ -1,8 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/docker/docker/client"
-	networkingv1 "k8s.io/api/networking/v1"
+	_ "github.com/lib/pq"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"log"
@@ -17,12 +18,11 @@ type server struct {
 	kconfig  *rest.Config
 	kclient  *kubernetes.Clientset
 	dclient  *client.Client
-	kingress *networkingv1.Ingress
+	db       *sql.DB
 	mu       sync.Mutex
 }
 
 func newHTTPServer(mux *http.ServeMux) *http.Server {
-
 	return &http.Server{
 		Addr:           ":8080",
 		Handler:        mux,
@@ -30,7 +30,17 @@ func newHTTPServer(mux *http.ServeMux) *http.Server {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
+}
 
+func newDB() *sql.DB {
+	connStr := "host=localhost port=5432 user=postgres password=secret dbname=kube_orch sslmode=disable"	
+	db, err := sql.Open("postgres", connStr)
+
+	if err != nil {
+		panic("couldn't reach postgres DB")
+	}
+
+	return db
 }
 
 func newMux() *http.ServeMux {
@@ -44,14 +54,13 @@ func NewServer() *server {
 	kcli := kubernetes_new_clientset(kcfg)
 	dcli := docker_new_client()
 
-	ing := kubernetes_new_ingress(kcfg, "user-12345")
 	return &server{
 		s:        newHTTPServer(m),
 		m:        m,
 		kclient:  kcli,
 		kconfig:  kcfg,
-		kingress: ing,
 		dclient:  dcli,
+		db:       newDB(),
 		mu:       sync.Mutex{},
 	}
 }
@@ -72,7 +81,11 @@ func (s *server) Routes() {
 	})
 
 	s.m.HandleFunc("POST /v1/deploy", s.MiddlewareExtractCookie(s.handlePostDeploy))
+	s.m.HandleFunc("GET /v1/deploy", s.MiddlewareExtractCookie(s.GetDeployments))
 	s.m.HandleFunc("PUT /v1/deploy", s.handlePutDeploy)
+
+	s.m.HandleFunc("POST /v1/user/register", s.registerUser)
+	s.m.HandleFunc("POST /v1/user/login", s.LogUser)
 }
 
 func (s *server) LogError(f string, err error) {

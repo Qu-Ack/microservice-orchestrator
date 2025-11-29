@@ -39,8 +39,7 @@ func kubernetes_new_clientset(cfg *rest.Config) *kubernetes.Clientset {
 	return clientSet
 }
 
-func kubernetes_new_ingress(cfg *rest.Config, namespace_name string) *networkingv1.Ingress {
-
+func kubernetes_new_ingress(cfg *rest.Config, namespace_name string) (*networkingv1.Ingress, error) {
 	client, err := v1.NewForConfig(cfg)
 
 	if err != nil {
@@ -87,10 +86,10 @@ func kubernetes_new_ingress(cfg *rest.Config, namespace_name string) *networking
 
 	if err != nil {
 		log.Println(err.Error())
-		panic("couldn't create an ingress")
+		return nil, err
 	}
 
-	return ingress
+	return ingress, nil
 }
 
 func (s *server) kuberentes_new_deployment(dep_name string, replicas *int32, pod_selector_labels map[string]string, port int32, image_name string, namespace_name string) (*appsv1.Deployment, error) {
@@ -183,7 +182,6 @@ func (s *server) kuberentes_new_service(service_name string, selector map[string
 }
 
 type PartialIngressUpdateStruct struct {
-
 }
 
 // make this go routine safe
@@ -192,6 +190,7 @@ func (s *server) kubernetes_ingress_update(service_name, host_name string, names
 	if err != nil {
 		return nil, err
 	}
+
 	// lock the mutex
 	s.mu.Lock()
 	current, err := client.Ingresses(namespace_name).Get(context.Background(), "simple-ingress", metav1.GetOptions{})
@@ -254,7 +253,7 @@ func (s *server) kubernetes_update_deployment(deployment_name string, part_dep P
 
 	if part_dep.name != nil {
 		dep.ObjectMeta.Name = *part_dep.name
-	} 
+	}
 
 	if part_dep.replicas != nil {
 		dep.Spec.Replicas = part_dep.replicas
@@ -275,7 +274,7 @@ func (s *server) kubernetes_update_deployment(deployment_name string, part_dep P
 func (s *server) kubernetes_create_namespace(namespace_name string) (*corev1.Namespace, error) {
 	namespace, err := s.kclient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Namespace",
+			Kind:       "Namespace",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,4 +288,24 @@ func (s *server) kubernetes_create_namespace(namespace_name string) (*corev1.Nam
 	}
 
 	return namespace, nil
+}
+
+func (s *server) kubernetes_list_services(namespace_name string) (*corev1.ServiceList, error) {
+
+	services, err := s.kclient.CoreV1().Services(namespace_name).List(context.Background(), metav1.ListOptions{})
+
+	if err != nil {
+		s.LogError("kubernetes_list_services", err)
+		return nil, err
+	}
+
+	return services, nil
+
+}
+func (s *server) kubernetes_delete_namespace(namespace_name string) error {
+	return s.kclient.CoreV1().Namespaces().Delete(context.Background(), namespace_name, metav1.DeleteOptions{})
+}
+
+func (s *server) kubernetes_delete_ingress(namespace_name string, ingress_name string) error {
+	return s.kclient.NetworkingV1().Ingresses(namespace_name).Delete(context.Background(), ingress_name, metav1.DeleteOptions{})
 }

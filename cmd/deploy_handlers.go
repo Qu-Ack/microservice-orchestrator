@@ -8,57 +8,6 @@ import (
 	"path/filepath"
 )
 
-func (s *server) logUser(w http.ResponseWriter, r *http.Request) {
-
-	type Body struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	var b Body
-
-	err := s.DecodeBody(r, &b)
-
-	if err != nil {
-		s.LogError("logUser", err)
-		s.JSON(w, map[string]string{"error": "invalid body"}, 401)
-		return
-	}
-
-}
-
-func (s *server) registerUser(w http.ResponseWriter, r *http.Request) {
-
-
-	// ingress creation and namespace creation will occur here
-
-	type Body struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	var b Body
-
-	err := s.DecodeBody(r, &b)
-
-	if err != nil {
-		s.LogError("registerUser", err)
-		s.JSON(w, map[string]string{"error": "invalid body"}, 401)
-		return
-	}
-
-	namespace_name := fmt.Sprintf("user-%v", random_string_from_charset(6))
-
-	_, err = s.kubernetes_create_namespace(namespace_name)
-
-	if err != nil {
-		s.LogError("registerUser", err)
-		s.JSON(w, map[string]string{"error": "internal server error"}, 500)
-		return
-	}
-
-	s.JSON(w, map[string]string{"status": "ok", "namespace_id": namespace_name}, 200)
-}
 
 func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 	s.LogRequest(r)
@@ -263,4 +212,24 @@ func (s *server) handlePutDeploy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.JSON(w, map[string]string{"status": "ok"}, 200)
+}
+
+
+func (s *server) GetDeployments(w http.ResponseWriter, r *http.Request) {
+	namespace_name, ok := r.Context().Value("namespace_id").(string)
+
+	if !ok {
+		s.JSON(w, map[string]string{"error": "forbidden"}, 401)
+		return
+	}
+
+
+	_, err := s.kubernetes_list_services(namespace_name)
+
+	if err != nil {
+		s.LogError("GetDeployments", err)
+		s.JSON(w, map[string]string{"error": "internal server err"}, 500)
+		return
+	}
+
 }
