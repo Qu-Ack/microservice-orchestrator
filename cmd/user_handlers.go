@@ -15,6 +15,7 @@ func (s *server) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	var b Body
 	if err := s.DecodeBody(r, &b); err != nil {
+		s.LogError("registerUser", err)
 		s.JSON(w, map[string]string{"error": "invalid body"}, 401)
 		return
 	}
@@ -85,16 +86,22 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
         WHERE email=$1
     `, b.Email)
 
+
+    	fmt.Println(b.Email)
+    	fmt.Println(b.Password)
+
 	var hashedPass string
 	var namespaceID string
 
 	err := row.Scan(&hashedPass, &namespaceID)
 	if err != nil {
+		s.LogError("logUser", err)
 		s.JSON(w, map[string]string{"error": "invalid credentials"}, 401)
 		return
 	}
 
 	if hashedPass != b.Password {
+		s.LogError("logUser", err)
 		s.JSON(w, map[string]string{"error": "invalid credentials"}, 401)
 		return
 	}
@@ -113,6 +120,7 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
 
 	signed, err := token.SignedString(hmacKey)
 	if err != nil {
+		s.LogError("logUser", err)
 		s.JSON(w, map[string]string{"error": "token generation failed"}, 500)
 		return
 	}

@@ -22,7 +22,7 @@ type server struct {
 	mu       sync.Mutex
 }
 
-func newHTTPServer(mux *http.ServeMux) *http.Server {
+func newHTTPServer(mux http.Handler) *http.Server {
 	return &http.Server{
 		Addr:           ":8080",
 		Handler:        mux,
@@ -50,11 +50,12 @@ func newMux() *http.ServeMux {
 func NewServer() *server {
 	m := newMux()
 
+
 	kcfg := kubernetes_new_config("/home/quack/.kube/config")
 	kcli := kubernetes_new_clientset(kcfg)
 	dcli := docker_new_client()
 
-	return &server{
+	s := &server{
 		s:        newHTTPServer(m),
 		m:        m,
 		kclient:  kcli,
@@ -63,13 +64,17 @@ func NewServer() *server {
 		db:       newDB(),
 		mu:       sync.Mutex{},
 	}
+	s.Routes()
+
+	corsMux := MiddlewareCors(m)
+
+	s.s = newHTTPServer(corsMux)
+	return s;
 }
 
 func (s *server) Serve() {
 	log.Println("Listening And Serving...")
-	s.Routes()
 	err := s.s.ListenAndServe()
-
 	if err != nil {
 		panic(err)
 	}

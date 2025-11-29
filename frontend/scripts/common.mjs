@@ -1,3 +1,6 @@
+export const API_URL = "http://localhost:8080"
+
+
 export async function Request(url, options, data) {
 
 	if (data) {
@@ -9,7 +12,7 @@ export async function Request(url, options, data) {
 
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({ message: 'Something went wrong' }));
-			throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`);
+			throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || response.statusText}`);
 		}
 
 		return await response.json();

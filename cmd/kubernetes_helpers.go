@@ -41,12 +41,11 @@ func kubernetes_new_clientset(cfg *rest.Config) *kubernetes.Clientset {
 
 func kubernetes_new_ingress(cfg *rest.Config, namespace_name string) (*networkingv1.Ingress, error) {
 	client, err := v1.NewForConfig(cfg)
-
 	if err != nil {
 		panic(err.Error())
 	}
 
-	pathType := networkingv1.PathTypePrefix
+	// Kubernetes requires at least defaultBackend OR rules.
 	ingress, err := client.Ingresses(namespace_name).Create(context.Background(), &networkingv1.Ingress{
 		metav1.TypeMeta{
 			Kind:       "ingress",
@@ -56,27 +55,11 @@ func kubernetes_new_ingress(cfg *rest.Config, namespace_name string) (*networkin
 			Name: "simple-ingress",
 		},
 		networkingv1.IngressSpec{
-			Rules: []networkingv1.IngressRule{
-				{
-
-					Host: "foo.bar.com",
-					IngressRuleValue: networkingv1.IngressRuleValue{
-						HTTP: &networkingv1.HTTPIngressRuleValue{
-							Paths: []networkingv1.HTTPIngressPath{
-								{
-									PathType: &pathType,
-									Path:     "/",
-									Backend: networkingv1.IngressBackend{
-										Service: &networkingv1.IngressServiceBackend{
-											Name: "web-service",
-											Port: networkingv1.ServiceBackendPort{
-												Number: 8080,
-											},
-										},
-									},
-								},
-							},
-						},
+			DefaultBackend: &networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{
+					Name: "placeholder",
+					Port: networkingv1.ServiceBackendPort{
+						Number: 80,
 					},
 				},
 			},
