@@ -8,7 +8,6 @@ export async function Request(url, options, data) {
 
 	try {
 		const response = await fetch(url, options);
-
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({ message: 'Something went wrong' }));
 			throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || response.statusText}`);

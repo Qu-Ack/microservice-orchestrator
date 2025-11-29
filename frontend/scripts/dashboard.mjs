@@ -8,9 +8,8 @@ window.onload = () => {
 
 	async function getServices() { 
 		try {
-			const response = await fetch(`${API_URL}/v1/deploy`, {credentials: "include"});
+			const response = await Request(`${API_URL}/v1/deploy`, {method: "GET", credentials: "include"});
 			console.log(response);
-
 		} catch (err) {
 			console.log(err)
 		}
