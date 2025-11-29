@@ -44,7 +44,7 @@ window.onload = () => {
 
 		try {
 			const response = await Request("http://localhost:8080/v1/user/login", {method: "POST", credentials: "include"}, {email: email, password: password});
-			console.log(response)
+			window.location = "http://localhost:3000/dashboard.html"
 		} catch (err) {
 			console.log(err.toString());
 		}
