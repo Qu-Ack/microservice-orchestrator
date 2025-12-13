@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/fatih/color"
+	"time"
 	"context"
 	"errors"
 	"fmt"
@@ -69,3 +71,15 @@ func MiddlewareCors(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+
+func MiddlewareLoggin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		g := color.New(color.FgRed, color.Bold)
+		whiteBackground := g.Add(color.BgWhite)
+		whiteBackground.Printf("%s   %s   %s   at   %s\n", r.Method, r.URL.Path, r.Host, time.Now().Format("2006-01-02 15:04:05"))
+		next.ServeHTTP(w, r)
+	})
+}
+
+

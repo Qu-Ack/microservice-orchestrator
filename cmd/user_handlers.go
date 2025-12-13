@@ -128,7 +128,7 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth_id",
 		Value:    signed,
-		HttpOnly: true,
+		HttpOnly: false,
 		Secure:   false, 
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,

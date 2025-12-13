@@ -10,24 +10,6 @@ import (
 
 
 func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
-	s.LogRequest(r)
-
-	type Body struct {
-		CloneUrl  string `json:"clone_url"`
-		Branch    string `json:"branch"`
-		Subdomain string `json:"subdomain"`
-		Type      string `json:"type"`
-	}
-
-	var b Body
-
-	err := s.DecodeBody(r, &b)
-
-	if err != nil {
-		s.JSON(w, map[string]string{"error": "internal server error"}, 500)
-		return
-	}
-
 	namespace_name, ok := r.Context().Value("namespace_id").(string)
 
 	if !ok {
@@ -41,12 +23,29 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type Body struct {
+		CloneUrl  string `json:"clone_url"`
+		Branch    string `json:"branch"`
+		Subdomain string `json:"subdomain"`
+		Type      string `json:"type"`
+	}
+	var b Body
+
+	err := s.DecodeBody(r, &b)
+
+	if err != nil {
+		s.LogError("handlePostDeploy", err)
+		s.JSON(w, map[string]string{"error": "internal server error"}, 500)
+		return
+	}
+
 	id := random_string_from_charset(6)
 	clone_path := make_clone_path(b.Subdomain, id)
 
 	err = git_clone(b.CloneUrl, b.Branch, "1", b.Subdomain, clone_path)
 
 	if err != nil {
+		s.LogError("handlePostDeploy", err)
 		s.JSON(w, map[string]string{"error": "internal server error", "message": "couldn't clone repo"}, 500)
 		return
 	}
@@ -57,6 +56,7 @@ func (s *server) handlePostDeploy(w http.ResponseWriter, r *http.Request) {
 
 		compose_file, err := s.read_compose_file(clone_path)
 		if err != nil {
+			s.LogError("handlePostDeploy", err)
 			s.JSON(w, map[string]string{"error": "internal server error", "message": "couldn't read compose_file"}, 500)
 			return
 		}
@@ -216,6 +216,7 @@ func (s *server) handlePutDeploy(w http.ResponseWriter, r *http.Request) {
 
 
 func (s *server) GetDeployments(w http.ResponseWriter, r *http.Request) {
+
 	namespace_name, ok := r.Context().Value("namespace_id").(string)
 
 	if !ok {
@@ -224,7 +225,7 @@ func (s *server) GetDeployments(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	_, err := s.kubernetes_list_services(namespace_name)
+	service_list, err := s.kubernetes_list_services(namespace_name)
 
 	if err != nil {
 		s.LogError("GetDeployments", err)
@@ -232,4 +233,12 @@ func (s *server) GetDeployments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	services := make([]string, 0);
+
+	for _, service := range service_list.Items {
+		services = append(services, service.ObjectMeta.Name)
+	}
+
+	s.LogMsg(fmt.Sprintf("inside getDeployments found: %v", services))
+	s.JSON(w, map[string]any{"services": services}, 200)
 }

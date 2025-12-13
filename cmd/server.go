@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"github.com/docker/docker/client"
+	"github.com/fatih/color"
 	_ "github.com/lib/pq"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -10,6 +11,12 @@ import (
 	"net/http"
 	"sync"
 	"time"
+)
+
+
+const (
+	BgGreen = "\033[42m"
+	Reset   = "\033[0m"
 )
 
 type server struct {
@@ -33,7 +40,7 @@ func newHTTPServer(mux http.Handler) *http.Server {
 }
 
 func newDB() *sql.DB {
-	connStr := "host=localhost port=5432 user=postgres password=secret dbname=kube_orch sslmode=disable"	
+	connStr := "host=localhost port=5432 user=postgres password=hello dbname=kube_orch sslmode=disable"	
 	db, err := sql.Open("postgres", connStr)
 
 	if err != nil {
@@ -67,8 +74,9 @@ func NewServer() *server {
 	s.Routes()
 
 	corsMux := MiddlewareCors(m)
+	loggingMux := MiddlewareLoggin(corsMux)
 
-	s.s = newHTTPServer(corsMux)
+	s.s = newHTTPServer(loggingMux)
 	return s;
 }
 
@@ -91,6 +99,8 @@ func (s *server) Routes() {
 
 	s.m.HandleFunc("POST /v1/user/register", s.registerUser)
 	s.m.HandleFunc("POST /v1/user/login", s.LogUser)
+
+	s.m.HandleFunc("GET /v1/service/{svc}", s.MiddlewareExtractCookie(s.handleGetService))
 }
 
 func (s *server) LogError(f string, err error) {
@@ -101,6 +111,3 @@ func (s *server) LogMsg(msg any) {
 	log.Println("MESSAGE::", msg)
 }
 
-func (s *server) LogRequest(r *http.Request) {
-	log.Printf("%s   %s   %s   at   %s", r.Method, r.URL.Path, r.Host, time.Now().Format("2006-01-02 15:04:05"))
-}

@@ -285,10 +285,16 @@ func (s *server) kubernetes_list_services(namespace_name string) (*corev1.Servic
 	return services, nil
 
 }
+
 func (s *server) kubernetes_delete_namespace(namespace_name string) error {
 	return s.kclient.CoreV1().Namespaces().Delete(context.Background(), namespace_name, metav1.DeleteOptions{})
 }
 
 func (s *server) kubernetes_delete_ingress(namespace_name string, ingress_name string) error {
 	return s.kclient.NetworkingV1().Ingresses(namespace_name).Delete(context.Background(), ingress_name, metav1.DeleteOptions{})
+}
+
+func (s *server) kubernetes_get_servicee(namespace_name string, service_name string) (*corev1.Service, error) {
+	return s.kclient.CoreV1().Services(namespace_name).Get(context.Background(), service_name, metav1.GetOptions{})
+
 }
