@@ -214,7 +214,6 @@ func (s *server) handlePutDeploy(w http.ResponseWriter, r *http.Request) {
 	s.JSON(w, map[string]string{"status": "ok"}, 200)
 }
 
-
 func (s *server) GetDeployments(w http.ResponseWriter, r *http.Request) {
 
 	namespace_name, ok := r.Context().Value("namespace_id").(string)

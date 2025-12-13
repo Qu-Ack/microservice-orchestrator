@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"github.com/docker/docker/client"
-	"github.com/fatih/color"
 	_ "github.com/lib/pq"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
