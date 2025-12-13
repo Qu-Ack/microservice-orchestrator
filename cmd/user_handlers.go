@@ -101,7 +101,6 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hashedPass != b.Password {
-		s.LogError("logUser", err)
 		s.JSON(w, map[string]string{"error": "invalid credentials"}, 401)
 		return
 	}
