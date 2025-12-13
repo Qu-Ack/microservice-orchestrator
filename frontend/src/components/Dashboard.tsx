@@ -66,7 +66,6 @@ const mockServices = [
 export default function Services() {
 	return (
 		<div className="min-h-screen bg-[#c0c0c0] p-4">
-			{/* Header */}
 			<table width="100%" cellPadding="0" cellSpacing="0" border={0} className="bg-[#000080] mb-4">
 				<tbody>
 					<tr>

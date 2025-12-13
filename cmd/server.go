@@ -100,6 +100,12 @@ func (s *server) Routes() {
 	s.m.HandleFunc("POST /v1/user/login", s.LogUser)
 
 	s.m.HandleFunc("GET /v1/service/{svc}", s.MiddlewareExtractCookie(s.handleGetService))
+	s.m.HandleFunc("PUT /v1/service/{svc}", s.MiddlewareExtractCookie(s.handlePutService))
+	s.m.HandleFunc("DELETE /v1/service/{svc}", s.MiddlewareExtractCookie(s.handleDeleteService))
+	s.m.HandleFunc("GET /v1/service/{svc}/stats", s.MiddlewareExtractCookie(s.handleGetServiceStats))
+
+	s.m.HandleFunc("GET /v1/pod/{pod_name}", s.MiddlewareExtractCookie(s.handleGetPod))
+	s.m.HandleFunc("GET /v1/pod/{pod_name}/logs", s.MiddlewareExtractCookie(s.handleGetPodLogs))
 }
 
 func (s *server) LogError(f string, err error) {

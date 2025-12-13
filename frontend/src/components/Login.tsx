@@ -15,6 +15,7 @@ export default function Login() {
 		try {
 			const response = await fetch(`${API_URL}/v1/user/login`, {
 				method: "POST",
+				credentials: "include",
 				body: JSON.stringify({ email: email, password: password })
 			})
 

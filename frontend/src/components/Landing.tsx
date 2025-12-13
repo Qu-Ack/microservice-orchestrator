@@ -1,6 +1,41 @@
+import {useEffect, useState} from "react"
 import { Link } from "react-router";
 
+function getCookie(name: string): string | null {
+	const dc: string = document.cookie;
+	const prefix: string = `${name}=`;
+
+	let begin: number = dc.indexOf(`; ${prefix}`);
+
+	if (begin === -1) {
+		begin = dc.indexOf(prefix);
+		if (begin !== 0) return null;
+	} else {
+		begin += 2;
+	}
+
+	let end: number = dc.indexOf(";", begin);
+	if (end === -1) {
+		end = dc.length;
+	}
+
+	return decodeURIComponent(
+		dc.substring(begin + prefix.length, end)
+	);
+}
+
+
 export default function Landing() {
+
+	const [authKey, setAuthKey] = useState("")
+
+	useEffect(() => {
+		const auth_key = getCookie("auth_id");
+		if (auth_key != null) {
+			setAuthKey(auth_key);
+		}
+	}, [])
+
 	return (
 		<div className="min-h-screen bg-[#c0c0c0] p-4">
 			<table
@@ -17,7 +52,7 @@ export default function Landing() {
 								<span className="text-white text-xl">
 									⚓ KubePirate - Microservice Orchestration
 								</span>
-								<div className="flex gap-2">
+								{authKey == "" ? <div className="flex gap-2">
 									<Link to="/login">
 										<button className="bg-[#c0c0c0] border-2 border-white px-4 py-1 text-sm">
 											Login
@@ -28,7 +63,13 @@ export default function Landing() {
 											Sign Up
 										</button>
 									</Link>
-								</div>
+								</div> : <div className="flex gap-2">
+									<Link to="/dashboard">
+										<button className="bg-[#c0c0c0] border-2 border-white px-4 py-1 text-sm">
+											Dashboard
+										</button>
+									</Link>
+								</div> }
 							</div>
 						</td>
 					</tr>

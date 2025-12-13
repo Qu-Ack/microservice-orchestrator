@@ -9,6 +9,17 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+func (s *server) handlePutService(w http.ResponseWriter, r *http.Request) {
+}
+
+
+func (s *server) handleDeleteService(w http.ResponseWriter, r *http.Request) {
+}
+
+
+func (s *server) handleGetServiceStats(w http.ResponseWriter, r *http.Request) {
+}
+
 
 func (s *server) handleGetService(w http.ResponseWriter, r *http.Request) {
 
