@@ -1,42 +1,44 @@
-import ReactDom from "react-dom/client"
-import './index.css'
-import { createBrowserRouter } from "react-router"
-import { RouterProvider } from "react-router/dom"
-import Landing from "./components/Landing.tsx"
-import Register from "./components/Register.tsx"
-import Login from "./components/Login.tsx"
-import Dashboard from "./components/Dashboard.tsx"
-import Service from "./components/Service.tsx"
+import ReactDOM from "react-dom/client";
+import { createBrowserRouter, Outlet } from "react-router";
+import { AuthContextProvider } from "./contexts/AuthContext"
+import { ThemeProvider } from "@/contexts/ThemeProvider"
+import { RouterProvider } from "react-router/dom";
+import App from "./App"
+import Nav from "./components/Nav";
+import "./index.css"
+
+
+function NavLayout() {
+	return (
+		<ThemeProvider>
+			<div className="h-screen w-screen flex flex-col pl-32 pr-32 pt-12">
+				<AuthContextProvider>
+					<Nav></Nav>
+					<main>
+						<Outlet />
+					</main>
+				</AuthContextProvider>
+			</div>
+		</ThemeProvider>
+	)
+}
+
 
 const router = createBrowserRouter([
 	{
 		path: "/",
-		element: <Landing/>,
+		element: <NavLayout />,
+		children: [
+			{ index: true, element: <App /> }
+		],
 	},
-	{
-		path: "/health",
-		element: <div> Healthy </div> 
-	},
-	{
-		path: "/login",
-		element: <Login/>
-	},
-	{
-		path: "/signup",
-		element: <Register/>
-	},
-	{
-		path: "/dashboard",
-		element: <Dashboard/>,
-	},
-	{
-		path: "/service/:svc",
-		element: <Service/>
-	}
-])
+]);
 
-const root = document.getElementById('root')!;
+const root = document.getElementById("root");
 
-ReactDom.createRoot(root).render(
-	<RouterProvider router={router}/>
-)
+if (!root) throw Error('no root element found bitch');
+
+ReactDOM.createRoot(root).render(
+	<RouterProvider router={router} />,
+);
+
