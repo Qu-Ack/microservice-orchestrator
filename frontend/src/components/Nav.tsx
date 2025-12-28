@@ -4,7 +4,6 @@ import { ModeToggle } from "./mode-toggle";
 import { Button } from "@/components/ui/button";
 import {
 	NavigationMenu,
-	NavigationMenuLink,
 	NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 
@@ -56,9 +55,11 @@ export default function Nav() {
 					<NavigationMenuList className="w-full flex items-center justify-between">
 						<div className="flex items-center gap-4">
 							<ModeToggle />
-							<NavigationMenuLink href={'/dashboard'}>
-								Dashboard
-							</NavigationMenuLink>
+							<Button asChild>
+								<Link to={'/dashboard'}>
+									Dashboard
+								</Link>
+							</Button>
 						</div>
 					</NavigationMenuList>
 				</NavigationMenu>

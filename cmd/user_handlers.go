@@ -1,11 +1,34 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"regexp"
 	"time"
 )
+
+func (s *server) validateRegisterBody(email string, password string) error {
+	if email == "" {
+		return errors.New("email could not be empty")
+	}
+	if password == "" {
+		return errors.New("password could not be empty")
+	}
+
+	// Validate email format
+	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	if !emailRegex.MatchString(email) {
+		return errors.New("invalid email format")
+	}
+
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters long")
+	}
+
+	return nil
+}
 
 func (s *server) registerUser(w http.ResponseWriter, r *http.Request) {
 	type Body struct {
@@ -20,9 +43,17 @@ func (s *server) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err := s.validateRegisterBody(b.Email, b.Password)
+
+	if err != nil {
+		s.LogError("registerUser", err)
+		s.JSON(w, map[string]string{"error": "validation failed", "message": err.Error()}, 500)
+		return
+	}
+
 	namespace := fmt.Sprintf("user-%s", random_string_from_charset(6))
 
-	_, err := s.kubernetes_create_namespace(namespace)
+	_, err = s.kubernetes_create_namespace(namespace)
 	if err != nil {
 		s.LogError("registerUser", err)
 		s.JSON(w, map[string]string{"error": "k8s namespace failed"}, 500)
@@ -80,20 +111,26 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err := s.validateRegisterBody(b.Email, b.Password)
+
+	if err != nil {
+		s.LogError("registerUser", err)
+		s.JSON(w, map[string]string{"error": "validation failed", "message": err.Error()}, 400)
+	}
+
 	row := s.db.QueryRow(`
         SELECT password, namespace_id 
         FROM users 
         WHERE email=$1
     `, b.Email)
 
-
-    	fmt.Println(b.Email)
-    	fmt.Println(b.Password)
+	fmt.Println(b.Email)
+	fmt.Println(b.Password)
 
 	var hashedPass string
 	var namespaceID string
 
-	err := row.Scan(&hashedPass, &namespaceID)
+	err = row.Scan(&hashedPass, &namespaceID)
 	if err != nil {
 		s.LogError("logUser", err)
 		s.JSON(w, map[string]string{"error": "invalid credentials"}, 401)
@@ -128,7 +165,7 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
 		Name:     "auth_id",
 		Value:    signed,
 		HttpOnly: false,
-		Secure:   false, 
+		Secure:   false,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 	})
@@ -136,5 +173,41 @@ func (s *server) LogUser(w http.ResponseWriter, r *http.Request) {
 	s.JSON(w, map[string]string{
 		"status":       "ok",
 		"namespace_id": namespaceID,
+	}, 200)
+}
+
+func (s *server) checkAuth(w http.ResponseWriter, r *http.Request) {
+
+	namespace_name, ok := r.Context().Value("namespace_id").(string)
+
+	if !ok {
+		s.JSON(w, map[string]string{"error": "forbidden"}, 401)
+		return
+	}
+
+	if namespace_name == "" {
+		s.JSON(w, map[string]string{"error": "forbidden"}, 401)
+		return
+	}
+
+	s.JSON(w, map[string]string{
+		"status":       "ok",
+		"namespace_id": namespace_name,
+	}, 200)
+}
+
+func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_id",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	s.JSON(w, map[string]string{
+		"message": "Successfully logged out",
 	}, 200)
 }

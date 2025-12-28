@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/fatih/color"
-	"time"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"time"
 )
 
 type AuthClaims struct {
@@ -38,11 +38,11 @@ func (s *server) MiddlewareExtractCookie(next http.HandlerFunc) http.HandlerFunc
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(AUTH_COOKIE_NAME)
 		if err == http.ErrNoCookie {
-			s.JSON(w, map[string]string{"error": "auth_id invalid"}, 401)
+			s.JSON(w, map[string]string{"error": "auth_id invalid", "message": "you have to log back in"}, 401)
 			return
 		}
 		if err != nil {
-			s.JSON(w, map[string]string{"error": "auth_id invalid"}, 401)
+			s.JSON(w, map[string]string{"error": "auth_id invalid", "message": "you have to log back in"}, 401)
 			return
 		}
 
@@ -51,7 +51,7 @@ func (s *server) MiddlewareExtractCookie(next http.HandlerFunc) http.HandlerFunc
 		token, err := jwt.ParseWithClaims(cookie.Value, &claims, keyFunction)
 
 		if err != nil || !token.Valid {
-			s.JSON(w, map[string]string{"error": "auth_id invalid"}, 401)
+			s.JSON(w, map[string]string{"error": "auth_id invalid", "message": "you have to log back in"}, 401)
 			return
 		}
 
@@ -66,12 +66,19 @@ func (s *server) MiddlewareExtractCookie(next http.HandlerFunc) http.HandlerFunc
 
 func MiddlewareCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }
-
 
 func MiddlewareLoggin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -81,5 +88,3 @@ func MiddlewareLoggin(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-
